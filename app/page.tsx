@@ -13,7 +13,7 @@ function processMessage(message: Message) {
     const completion = message.content;
     const bracket_idx = completion.indexOf('{');
     let text_update = completion;
-    let state = {}
+    let state = null
 
     if (bracket_idx >= 0) {
       text_update = completion.substring(0, bracket_idx)
@@ -58,7 +58,7 @@ function displayState(worldState: any) {
   for (const key in worldState) {
     if (worldState.hasOwnProperty(key)) {
       fields.push(
-        <li><b>{key}</b>: {worldState[`${key}`].toString()}</li>
+        <li key={key}><b>{key}</b>: {worldState[key].toString()}</li>
       )
     }
   }
@@ -88,20 +88,17 @@ export default function Page() {
     if (processed) {
       let { text_update, state } = processed;
       textStates.push(text_update);
+      if (state)
       jsonStates.push(state);
     }
   }
 
-  
-
-  // Function to scroll to the bottom
   const scrollToBottom = () => {
     if (eventContainerRef.current) {
       eventContainerRef.current.scrollTop = eventContainerRef.current.scrollHeight;
     }
   };
 
-  // Scroll to the bottom whenever `textStates` updates
   useEffect(() => {
     scrollToBottom();
   }, [textStates]);

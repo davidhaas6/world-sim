@@ -15,8 +15,7 @@ This is an information-dense update for the simulation.
     \"a more complex parameter\": {...}
 }`
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+export const maxDuration = 30;  // Allow streaming responses up to 30 seconds
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
     messages,
   });
 
-
+  // TODO: server-side event parsing and database storage
   const { data, error } = await supabase
   .from('simulation_events')
   .insert([
