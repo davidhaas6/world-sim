@@ -1,9 +1,18 @@
 // page.tsx
 'use client';
 
-import { Message, useChat, useCompletion } from 'ai/react';
-import next from 'next';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Message, useChat } from 'ai/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+
+function getOrCreateClientId() {
+  let clientId = window.localStorage.getItem('clientId');
+  if (!clientId) {
+    clientId = Math.random().toString(36).substr(2) + Date.now().toString(36);
+    window.localStorage.setItem('clientId', clientId);
+  }
+  return clientId;
+}
 
 
 function processMessage(message: Message) {
@@ -12,13 +21,18 @@ function processMessage(message: Message) {
   } else {
     const completion = message.content;
     const bracket_idx = completion.indexOf('{');
-    let text_update = completion;
-    let state = null
+    const state_idx = completion.indexOf('# St')
+    console.log(completion)
+    let text_update = completion.replaceAll('# Update', '');
+    if (state_idx >= 0) {
+      text_update = text_update.split('# St')[0]
+    }
 
+    let state = null;
     if (bracket_idx >= 0) {
-      text_update = completion.substring(0, bracket_idx)
       if (completion.split('{').length == completion.split('}').length) {  // heuristic for json completeness
-        let json_update = completion.substring(bracket_idx)
+        const last_bracket = completion.lastIndexOf('}')
+        let json_update = completion.substring(bracket_idx, last_bracket + 1)
         try {
           state = JSON.parse(json_update.replaceAll('\n', ''))
         }
@@ -33,7 +47,14 @@ function processMessage(message: Message) {
 
 function useSimulation(simEvent?: string, timeDelta = 1) {
   const [simTime, setTime] = useState(0);
-  const { messages, append } = useChat({ onResponse: () => { } });
+  const clientId = useMemo(() => getOrCreateClientId(), []);
+  const { messages, append } = useChat({
+    onResponse: () => { },
+    headers: {
+      'x-client-id': clientId,
+    }
+  });
+
   const nextStep = useCallback(
     () => {
       const newTime = simTime + timeDelta;
@@ -42,8 +63,6 @@ function useSimulation(simEvent?: string, timeDelta = 1) {
       if (simEvent) {
         prompt += '\nEvent: ' + simEvent
       }
-      console.log(prompt)
-
       append({ role: "user", content: prompt });
     },
     [simTime, timeDelta, simEvent],
@@ -89,7 +108,7 @@ export default function Page() {
       let { text_update, state } = processed;
       textStates.push(text_update);
       if (state)
-      jsonStates.push(state);
+        jsonStates.push(state);
     }
   }
 
@@ -103,6 +122,8 @@ export default function Page() {
     scrollToBottom();
   }, [textStates]);
 
+  const has_started = textStates.length > 0
+
   return (
     <div className="main-container">
       <div className="events-container panel" ref={eventContainerRef}>
@@ -111,20 +132,25 @@ export default function Page() {
       </div>
 
       <div className="control-container">
-        
+
         <div className="form-container panel">
+
           <form onSubmit={nextStepButton} className="entry-form">
-            <div className='input-forms'>
-              <input
-                name="prompt"
-                value={eventField}
-                onChange={handleFormInput}
-                className="form-input"
-                placeholder=''
-              />
-            </div>
-            <br />
-            <button type="submit" className="next-button">Run</button>
+            {has_started ?
+              <>
+                <div className='input-forms'>
+                  <input
+                    name="prompt"
+                    value={eventField}
+                    onChange={handleFormInput}
+                    className="form-input"
+                    placeholder=''
+                  />
+                </div>
+                <br />
+              </>
+              : null}
+            <button type="submit" className="next-button">{textStates.length > 0 ? "Run" : "Begin"}</button>
           </form>
         </div>
         <div className="state-panel panel">
