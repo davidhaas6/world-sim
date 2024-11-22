@@ -3,6 +3,7 @@
 
 import { Message, useChat } from 'ai/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import InfoPanel from './InfoPanel';
 
 
 function getOrCreateClientId() {
@@ -22,7 +23,7 @@ function processMessage(message: Message) {
     const completion = message.content;
     const bracket_idx = completion.indexOf('{');
     const state_idx = completion.indexOf('# St')
-    console.log(completion)
+    // console.log(completion)
     let text_update = completion.replaceAll('# Update', '');
     if (state_idx >= 0) {
       text_update = text_update.split('# St')[0]
@@ -71,18 +72,6 @@ function useSimulation(simEvent?: string, timeDelta = 1) {
   return { messages, nextStep };
 }
 
-
-function displayState(worldState: any) {
-  let fields = [];
-  for (const key in worldState) {
-    if (worldState.hasOwnProperty(key)) {
-      fields.push(
-        <li key={key}><b>{key}</b>: {worldState[key].toString()}</li>
-      )
-    }
-  }
-  return <ul>{fields}</ul>
-}
 
 
 export default function Page() {
@@ -153,9 +142,7 @@ export default function Page() {
             <button type="submit" className="next-button">{textStates.length > 0 ? "Run" : "Begin"}</button>
           </form>
         </div>
-        <div className="state-panel panel">
-          {displayState(jsonStates.pop())}
-        </div>
+        <InfoPanel stateData={jsonStates} />
       </div>
     </div>
   );

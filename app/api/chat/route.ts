@@ -42,11 +42,12 @@ function getSystemPrompt(clientId: string) {
     }
     metric_prompt += `\n  "${metric['name']}": ${random_num},`
   }
-  metric_prompt = metric_prompt.substring(0, metric_prompt.length - 1)  // remove final comma
+  metric_prompt += '\n  "time": 2.045'
+  // metric_prompt = metric_prompt.substring(0, metric_prompt.length - 1)  // remove final comma
   metric_prompt += '\n}\n```'
 
   const prompt = world_sim_system.replace(
-    '{{num_metrics}}', num_metrics.toString()
+    '{{num_metrics}}', (num_metrics+1).toString() // plus one for time
   ).replace('{{metric_text}}', metric_prompt)
   console.log("Prompt:", prompt)
   return prompt;
