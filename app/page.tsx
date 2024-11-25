@@ -4,9 +4,19 @@
 import { Message, useChat } from 'ai/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InfoPanel from './InfoPanel';
-import { hash, randomUUID } from 'crypto';
+import { hash, randomInt, randomUUID } from 'crypto';
 
+import DOMPurify from 'dompurify';
 
+type State = { [key in string]: number }
+
+function unescapeAndSanitize(input: string) {
+  const unescaped = input
+    .replace(/&lt;b&gt;/g, "<b>")
+    .replace(/&lt;\/b&gt;/g, "</b>");
+
+  return DOMPurify.sanitize(unescaped);
+}
 function getOrCreateClientId() {
   let clientId = window.localStorage.getItem('clientId');
   if (!clientId) {
@@ -23,10 +33,10 @@ function processMessage(message: Message) {
   } else {
     const completion = message.content;
     const bracket_idx = completion.indexOf('{');
-    const state_idx = completion.indexOf('# St')
-    let text_update = completion.replaceAll('# Update', '');
+    const state_idx = completion.indexOf('### St')
+    let text_update = completion.replaceAll('### Update', '');
     if (state_idx >= 0) {
-      text_update = text_update.split('# St')[0]
+      text_update = text_update.split('### St')[0]
     }
 
     let state = null;
@@ -46,10 +56,11 @@ function processMessage(message: Message) {
   }
 }
 
-function useSimulation(simEvent?: string, timeDelta = 1) {
+
+function useSimulation(simEvent?: string, timeDelta?: number) {
   const [simTime, setTime] = useState(0);
   const [clientId, setClientId] = useState<string>();
-  const [sessionId] = useState<string>(() => crypto.randomUUID());
+  const [sessionId] = useState<string>(() => crypto.randomUUID())
   const { messages, append } = useChat({
     onResponse: () => { },
     headers: clientId && sessionId ? {
@@ -65,24 +76,35 @@ function useSimulation(simEvent?: string, timeDelta = 1) {
 
   const nextStep = useCallback(
     () => {
-      const newTime = simTime + timeDelta;
-      setTime(newTime);
-      let prompt = "TIME: " + simTime
-      if (simEvent) {
-        prompt += '\nEvent: ' + simEvent
+      console.log("next step called")
+      if (simEvent && simEvent.length) {
+        timeDelta = 0.001
       }
+      else if (timeDelta == null) {
+        timeDelta = Math.random();
+        if (simTime === 0) {
+          timeDelta = 0.0001;
+        }
+      }
+      const newTime = Math.round((simTime + timeDelta) * 10000) / 10000;
+      setTime(newTime);
+      let prompt = "**Simulation Time**: " + newTime
+      if (simEvent) {
+        prompt += '\n\n**Event**: ' + simEvent
+      }
+      console.log("appended event with time", newTime)
       append({ role: "user", content: prompt });
     },
     [simTime, timeDelta, simEvent],
   )
 
-  return { messages, nextStep };
+  return { messages, nextStep, simTime };
 }
 
 export default function Page() {
   const [eventField, setEventField] = useState<string>('');
   const eventContainerRef = useRef<HTMLDivElement>(null);
-  const { messages, nextStep } = useSimulation(eventField);
+  const { messages, nextStep, simTime } = useSimulation(eventField);
 
 
   const handleFormInput = (event: any) => {
@@ -96,7 +118,7 @@ export default function Page() {
   };
 
   const textStates = []
-  const jsonStates = []
+  const jsonStates: State[] = []
   for (let message of messages) {
     const processed = processMessage(message);
     if (processed) {
@@ -126,7 +148,20 @@ export default function Page() {
         <div className="page-title-container">
           <h1 className='page-title'>Simulator</h1>
         </div>
-        {textStates.map((text, i) => <p key={i} className='simulationStep'>{text} </p>)}
+        {textStates.map((text, i) => {
+
+          return (
+            <div className='simulation-step' key={'text'+i}>
+              {/* <span className='time-label'>Time: </span> */}
+              <span className='time-value'>{jsonStates.length > i ? jsonStates[i]['time'] : simTime}
+              </span>
+              <p
+                key={i} className='simulation-step-text'
+                dangerouslySetInnerHTML={{ __html: unescapeAndSanitize(text) }}
+              />
+            </div>
+          )
+        })}
       </div>
 
       <div className="control-container">
@@ -136,19 +171,26 @@ export default function Page() {
           <form onSubmit={nextStepButton} className="entry-form">
             {has_started ?
               <>
-                <div className='input-forms'>
+                <h1 title="The current simulation time">
+                  <span className='time-label'>Time: </span>
+                  <span className='time-value'>{Math.round(simTime * 1000) / 1000}</span>
+                </h1>
+                <div className='input-forms' >
                   <input
                     name="prompt"
                     value={eventField}
                     onChange={handleFormInput}
                     className="form-input"
-                    placeholder=''
+                    placeholder='Event entry'
+                    title="Give the simulator a custom event"
                   />
                 </div>
                 <br />
               </>
               : null}
-            <button type="submit" className="next-button">{textStates.length > 0 ? "Run" : "Begin"}</button>
+            <button type="submit" className="next-button" title='Evolve the simulation'>
+              {textStates.length > 0 ? "Run" : "Begin"}
+              </button>
           </form>
         </div>
         <InfoPanel stateData={jsonStates} />

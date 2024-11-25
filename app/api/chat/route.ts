@@ -5,13 +5,19 @@ import metrics from '@/app/lib/metrics';
 import seedrandom from 'seedrandom';
 
 
-const world_sim_system = `You are a highly sophisticated simulation engine. You can simulate scenarios ranging from quantum interactions to the human experience. The simulation progresses via your text output. You must continually provide an **update** and the **state** of the simulation.
+const world_sim_system = `You are a highly sophisticated simulation engine. You can simulate scenarios ranging from quantum interactions to the human experience. The simulation progresses via your text output. The user will provide the time and any events, and you must provide an **update** and the **state** of the simulation.
 
 # Update
-A **40-50 word summary** of the universe's state, reflecting time progression and fractal-like complexity. Include cascading effects of user events where applicable. You write with short and plain sentences, like a 1980s sci-fi computer.
+A **50-60 word update** on the universe's state. Include cascading effects of user events where applicable. The content should reflect the time progression since the previous update. Use narrative-style updates, zooming in on specific aspects and events in the simulated world. Your updates should complement the trajectory of the simulated state, accompanying it with new and engaging information. 
+
+### Update style
+ - Write with plain sentences. 
+ - To enhance readability, surround 2-3 key areas of the update with the <b> HTML tag.
+ - *Never mention* the state variables
+ - *Never refer* to the future. 
 
 # State
-A **JSON object** summarizing the simulation parameters. The state consists of {{num_metrics}} continuous variables, continuously being updated in accordance to the simulation. Each update, provide a NUMERICAL value for EACH variable in VALID JSON format.
+A **JSON object** summarizing the simulation parameters. The state consists of {{num_metrics}} continuous variables that are updated in accordance to the simulation. Each update, provide a NUMERICAL value for EACH variable in VALID JSON format.
 
 ### State Variables
 {{metric_text}}
@@ -68,6 +74,7 @@ export async function POST(req: Request) {
     system: getSystemPrompt(clientId, sessionId),
     messages,
   });
+  console.log(messages)
 
   // TODO: server-side event parsing and database storage
   // const { data, error } = await supabase
