@@ -17,16 +17,12 @@ A **JSON object** summarizing the simulation parameters. The state consists of {
 {{metric_text}}
 `
 
-function getSystemPrompt(clientId: string) {
+function getSystemPrompt(clientId: string, sessionId: string) {
   const num_metrics = 10;
-  const rng = seedrandom(clientId);
+  const rng = seedrandom(clientId + sessionId);
   const randomizedMetrics = [...metrics].sort(() => rng() - 0.5);
   const myMetrics = randomizedMetrics.slice(0, num_metrics);
-
   let metric_prompt = '';
-  // for (let metric of myMetrics) {
-  //   metric_prompt += `\n- ${metric['name']}\n  - ${metric['description']}\n  - Unit: ${metric['unit']}`;
-  // }
 
   metric_prompt += '\nExample state:\n```json\n{\n'
   for (let metric of myMetrics) {
@@ -43,13 +39,11 @@ function getSystemPrompt(clientId: string) {
     metric_prompt += `\n  "${metric['name']}": ${random_num},`
   }
   metric_prompt += '\n  "time": 2.045'
-  // metric_prompt = metric_prompt.substring(0, metric_prompt.length - 1)  // remove final comma
   metric_prompt += '\n}\n```'
 
   const prompt = world_sim_system.replace(
     '{{num_metrics}}', (num_metrics+1).toString() // plus one for time
   ).replace('{{metric_text}}', metric_prompt)
-  console.log("Prompt:", prompt)
   return prompt;
 }
 
@@ -60,8 +54,10 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   // Extract the client ID from the headers
-  const clientId = req.headers.get('x-client-id');
+  const clientId = req.headers.get('x-client-id') ?? '';  // bad fix for null session IDs
+  const sessionId = req.headers.get('x-session-id') ?? '';
   console.log("client id", clientId)
+  console.log("session id", sessionId)
 
   if (!clientId) {
     return new Response('Missing client ID', { status: 400 });
@@ -69,7 +65,7 @@ export async function POST(req: Request) {
 
   const result = await streamText({
     model: openai('gpt-4o-mini'),
-    system: getSystemPrompt(clientId),
+    system: getSystemPrompt(clientId, sessionId),
     messages,
   });
 

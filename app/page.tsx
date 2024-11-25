@@ -4,6 +4,7 @@
 import { Message, useChat } from 'ai/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InfoPanel from './InfoPanel';
+import { hash, randomUUID } from 'crypto';
 
 
 function getOrCreateClientId() {
@@ -23,7 +24,6 @@ function processMessage(message: Message) {
     const completion = message.content;
     const bracket_idx = completion.indexOf('{');
     const state_idx = completion.indexOf('# St')
-    // console.log(completion)
     let text_update = completion.replaceAll('# Update', '');
     if (state_idx >= 0) {
       text_update = text_update.split('# St')[0]
@@ -48,13 +48,20 @@ function processMessage(message: Message) {
 
 function useSimulation(simEvent?: string, timeDelta = 1) {
   const [simTime, setTime] = useState(0);
-  const clientId = useMemo(() => getOrCreateClientId(), []);
+  const [clientId, setClientId] = useState<string>();
+  const [sessionId] = useState<string>(() => crypto.randomUUID());
   const { messages, append } = useChat({
     onResponse: () => { },
-    headers: {
+    headers: clientId && sessionId ? {
       'x-client-id': clientId,
-    }
+      'x-session-id': sessionId
+    } : {}
   });
+
+  useEffect(() => {
+    const id = getOrCreateClientId();
+    setClientId(id);
+  }, []);
 
   const nextStep = useCallback(
     () => {
@@ -72,12 +79,11 @@ function useSimulation(simEvent?: string, timeDelta = 1) {
   return { messages, nextStep };
 }
 
-
-
 export default function Page() {
   const [eventField, setEventField] = useState<string>('');
   const eventContainerRef = useRef<HTMLDivElement>(null);
   const { messages, nextStep } = useSimulation(eventField);
+
 
   const handleFormInput = (event: any) => {
     setEventField(event.target.value);
@@ -115,8 +121,11 @@ export default function Page() {
 
   return (
     <div className="main-container">
+
       <div className="events-container panel" ref={eventContainerRef}>
-        <h1>Simulator</h1>
+        <div className="page-title-container">
+          <h1 className='page-title'>Simulator</h1>
+        </div>
         {textStates.map((text, i) => <p key={i} className='simulationStep'>{text} </p>)}
       </div>
 
