@@ -56,6 +56,11 @@ h1 {
   width: 100%;
 }
 
+.graph-container {
+  width: 200px;
+  height: 100%;;
+}
+
 .form-container {
   width: 400px;
   margin-right: 0px;
@@ -65,6 +70,8 @@ h1 {
 
 .state-panel {
   width: 400px;
+  display: flex;
+  flex-direction: row;
 }
 
 .simulationStep {
@@ -131,7 +138,9 @@ h1 {
   /* max-width: 150px; */
 }
 
-
+.page-title-container {
+  /* position: fixed; */
+}
 
 /* Style the scrollbar for the container */
 .events-container::-webkit-scrollbar {
