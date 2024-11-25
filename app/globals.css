@@ -64,14 +64,26 @@ h1 {
 .form-container {
   width: 400px;
   margin-right: 0px;
+  height: fit-content;
 
   background-color: white;
 }
 
 .state-panel {
   width: 400px;
+  max-width: 400px;
+  height: fit-content;
+  max-height: 600px;
   display: flex;
-  flex-direction: row;
+  flex-flow: column wrap;
+  /* display: grid; */
+  /* height: fit-content; */
+ 
+
+  /* grid-template-areas:
+    'header header header header header header'
+    'menu main main main right right'
+    'menu footer footer footer footer footer'; */
 }
 
 .simulationStep {
